@@ -1,7 +1,7 @@
 FROM challisa/tessmix:latest
 
 MAINTAINER Andy Challis <andrewchallis@hotmail.co.uk>
-
+WORKDIR /
 # Install any dependencies
 RUN export OPENCV_VERSION="3.4.2" && \
     export PYTHON_VERSION="3.6" && \
@@ -35,11 +35,14 @@ RUN export OPENCV_VERSION="3.4.2" && \
     apt-get clean && \
 
   # Install OpenCV
-  wget https://github.com/opencv/opencv/archive/${OPENCV_VERSION}.tar.gz \
-    && tar -xvzf ${OPENCV_VERSION}.tar.gz \
+  wget https://github.com/opencv/opencv/archive/${OPENCV_VERSION}.tar.gz -O opencv.tar.gz \
+    && tar -xvzf opencv.tar.gz \
+    && wget https://github.com/opencv/opencv_contrib/archive/${OPENCV_VERSION}.tar.gz -O opencv_contrib.tar.gz \
+    && tar -xvzf opencv_contrib.tar.gz \
     && mkdir /opencv-${OPENCV_VERSION}/cmake_binary \
     && cd /opencv-${OPENCV_VERSION}/cmake_binary \
     && cmake \
+      -DOPENCV_EXTRA_MODULES_PATH=/opencv_contrib-${OPENCV_VERSION}/modules \
       -DBUILD_TIFF=ON \
       -DBUILD_opencv_java=OFF \
       -DWITH_CUDA=OFF \
@@ -57,10 +60,11 @@ RUN export OPENCV_VERSION="3.4.2" && \
       -DPYTHON_EXECUTABLE=$(which python) \
       -DPYTHON_INCLUDE_DIR=$(python -c "from distutils.sysconfig import get_python_inc; print(get_python_inc())") \
       -DPYTHON_PACKAGES_PATH=$(python -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())") .. \
-    && make install \
+    && make -j5 \
     && cd / \
-    && rm /${OPENCV_VERSION}.tar.gz \
-    && rm -r /opencv-${OPENCV_VERSION} && \
+    && rm /opencv_contrib.tar.gz \
+    && rm /opencv.tar.gz \
+    && rm -r /opencv-${OPENCV_VERSION} \
+    && rm -r /opencv_contrib-${OPENCV_VERSION} \
   # Install OpenCV for Python
-    pip3 install opencv-python
-
+    && pip3 install opencv-contrib-python-headless
